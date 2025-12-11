@@ -32,7 +32,14 @@ const Member = sequelize.define(
         id_senior: { type: DataTypes.INTEGER, allowNull: true },
         id_leader: { type: DataTypes.INTEGER, allowNull: true },
     },
-    { timestamps: true }
+    {
+        // 🔥 PASTIKAN INI SAMA DENGAN PHPMYADMIN
+        // Cek phpMyAdmin Anda. Jika nama tabelnya 'members' pakai 'members'.
+        // Jika nama tabelnya 'soap_members' pakai 'soap_members'.
+        // Jika tidak yakin, coba 'members' dulu karena ini default Laravel/Sequelize.
+        tableName: "members", 
+        timestamps: true 
+    }
 );
 
 module.exports = Member;

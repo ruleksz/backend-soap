@@ -1,190 +1,195 @@
-const Properti = require("../models/Properti");
-const Member = require("../models/Member");
+// controllers/propertiController.js
+const { Properti, Member, Rumah } = require("../models");
 
-// 📄 GET semua properti
+// =============================
+//  GET ALL PROPERTI
+// =============================
 exports.getAllProperti = async (req, res) => {
-    try {
-        const data = await Properti.findAll({
-            order: [["id_properti", "DESC"]],
-        });
+  try {
+    const data = await Properti.findAll({
+      include: [
+        {
+          model: Member,
+          as: "owner_senior",
+          attributes: ["id_member", "nama", "email"], // kontak DIHAPUS
+        },
+        {
+          model: Rumah,
+          as: "rumahs",
+        }
+      ],
+      order: [["id_properti", "DESC"]],
+    });
 
-        const result = data.map((item) => ({
-            ...item.toJSON(),
-            image: item.image
-                ? `data:image/jpeg;base64,${item.image.toString("base64")}`
-                : null,
-        }));
+    const result = data.map((item) => {
+      const json = item.toJSON();
+      if (json.image && Buffer.isBuffer(json.image)) {
+        json.image = `data:image/jpeg;base64,${json.image.toString("base64")}`;
+      }
+      return json;
+    });
 
-        res.status(200).json({
-            success: true,
-            message: "Data properti berhasil diambil",
-            data: result,
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            success: false,
-            message: "Terjadi kesalahan saat mengambil data properti",
-        });
-    }
+    return res.status(200).json({
+      success: true,
+      message: "Data properti berhasil diambil",
+      data: result,
+    });
+  } catch (err) {
+    console.error("🔥 getAllProperti Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Gagal mengambil data properti",
+      error: err.message,
+    });
+  }
 };
 
 
-//
-// 📄 GET properti berdasarkan ID
-//
+// =============================
+//  GET PROPERTI BY ID
+// =============================
 exports.getPropertiById = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const data = await Properti.findByPk(id);
-
-        if (!data) {
-            return res.status(404).json({
-                success: false,
-                message: "Properti tidak ditemukan",
-            });
+  try {
+    const data = await Properti.findByPk(req.params.id, {
+      include: [
+        {
+          model: Member,
+          as: "owner_senior",
+          attributes: ["id_member", "nama", "email"], // kontak DIHAPUS
+        },
+        {
+          model: Rumah,
+          as: "rumahs",
         }
+      ],
+    });
 
-        const propertiData = data.toJSON();
-        if (propertiData.image) {
-            propertiData.image = `data:image/jpeg;base64,${propertiData.image.toString("base64")}`;
-        }
-
-        res.status(200).json({
-            success: true,
-            data: propertiData,
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            success: false,
-            message: "Terjadi kesalahan saat mengambil data properti",
-        });
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Properti tidak ditemukan",
+      });
     }
+
+    const json = data.toJSON();
+    if (json.image && Buffer.isBuffer(json.image)) {
+      json.image = `data:image/jpeg;base64,${json.image.toString("base64")}`;
+    }
+
+    return res.status(200).json({ success: true, data: json });
+
+  } catch (err) {
+    console.error("🔥 getPropertiById Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Gagal mengambil properti",
+      error: err.message,
+    });
+  }
 };
 
 
-//
-// ➕ TAMBAH properti baru
-//
-exports.createProperti = [
-    async (req, res) => {
-        try {
-            const { nama_properti, deskripsi, lokasi, kontraktor, id_member } = req.body;
+// =============================
+//  CREATE PROPERTI
+// =============================
+exports.createProperti = async (req, res) => {
+  try {
+    let { nama_properti, deskripsi, lokasi, kontraktor, id_member } = req.body;
 
-            // cek apakah member adalah senior leader
-            const member = await Member.findOne({
-                where: {
-                    id_member,
-                    jabatan: "Senior leader",
-                },
-            });
-
-            if (!member) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Hanya Senior leader yang dapat menambahkan properti.",
-                });
-            }
-
-            const newProperti = await Properti.create({
-                nama_properti,
-                deskripsi,
-                lokasi,
-                kontraktor,
-                id_member: member.id_member,
-            });
-
-            res.status(201).json({
-                success: true,
-                message: "Properti berhasil dibuat",
-                data: newProperti,
-            });
-
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({
-                success: false,
-                message: "Gagal menyimpan properti",
-            });
-        }
-    },
-];
-
-
-//
-// ✏️ UPDATE properti
-//
-exports.updateProperti = [
-    async (req, res) => {
-        try {
-            const { id } = req.params;
-            const { nama_properti, deskripsi, lokasi, kontraktor } = req.body;
-
-            const properti = await Properti.findByPk(id);
-
-            if (!properti) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Properti tidak ditemukan",
-                });
-            }
-
-            await properti.update({
-                nama_properti,
-                deskripsi,
-                lokasi,
-                kontraktor,
-            });
-
-            res.status(200).json({
-                success: true,
-                message: "Properti berhasil diperbarui",
-                data: properti,
-            });
-
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({
-                success: false,
-                message: "Gagal memperbarui properti",
-            });
-        }
-    },
-];
-
-
-//
-// 🗑️ HAPUS properti
-//
-exports.deleteProperti = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const properti = await Properti.findByPk(id);
-
-        if (!properti) {
-            return res.status(404).json({
-                success: false,
-                message: "Properti tidak ditemukan",
-            });
-        }
-
-        await properti.destroy();
-
-        res.status(200).json({
-            success: true,
-            message: "Properti berhasil dihapus",
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            success: false,
-            message: "Gagal menghapus properti",
-        });
+    if (!id_member && req.user) {
+      id_member = req.user.id;
     }
+
+    if (!id_member) {
+      return res.status(400).json({ success: false, message: "id_member diperlukan" });
+    }
+
+    const owner = await Member.findByPk(id_member);
+    if (!owner) {
+      return res.status(404).json({ success: false, message: "Member tidak ditemukan" });
+    }
+
+    if (owner.jabatan !== "senior_leader") {
+      return res.status(403).json({ success: false, message: "Hanya Senior Leader yang dapat menjadi owner properti" });
+    }
+
+    const newProperti = await Properti.create({
+      nama_properti,
+      deskripsi,
+      lokasi,
+      kontraktor,
+      id_member,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Properti berhasil ditambahkan",
+      data: newProperti,
+    });
+
+  } catch (err) {
+    console.error("🔥 createProperti Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Gagal membuat properti",
+      error: err.message,
+    });
+  }
+};
+
+
+// =============================
+//  UPDATE PROPERTI
+// =============================
+exports.updateProperti = async (req, res) => {
+  try {
+    const properti = await Properti.findByPk(req.params.id);
+    if (!properti) {
+      return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
+    }
+
+    await properti.update(req.body);
+
+    return res.status(200).json({
+      success: true,
+      message: "Properti berhasil diperbarui",
+      data: properti,
+    });
+
+  } catch (err) {
+    console.error("🔥 updateProperti Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Gagal memperbarui properti",
+      error: err.message,
+    });
+  }
+};
+
+
+// =============================
+//  DELETE PROPERTI
+// =============================
+exports.deleteProperti = async (req, res) => {
+  try {
+    const properti = await Properti.findByPk(req.params.id);
+    if (!properti) {
+      return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
+    }
+
+    await properti.destroy();
+
+    return res.status(200).json({
+      success: true,
+      message: "Properti berhasil dihapus",
+    });
+
+  } catch (err) {
+    console.error("🔥 deleteProperti Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Gagal menghapus properti",
+      error: err.message,
+    });
+  }
 };
