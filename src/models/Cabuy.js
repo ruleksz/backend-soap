@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
-const Member = require("./Member");
+// Hapus import Member di sini untuk menghindari circular dependency
+// Relasi sudah diatur di models/index.js
 
 const Cabuy = sequelize.define(
     "Cabuy",
@@ -19,7 +20,8 @@ const Cabuy = sequelize.define(
             allowNull: false,
         },
         status: {
-            type: DataTypes.ENUM("Baru", "Follow Up", "Closing", "Lost"),
+            // Update ENUM sesuai kebutuhan fitur "Siap Survey"
+            type: DataTypes.ENUM("Baru", "Follow Up", "Siap Survey", "Booking", "Closing", "Lost"),
             defaultValue: "Baru",
             allowNull: true,
         },
@@ -30,26 +32,23 @@ const Cabuy = sequelize.define(
         tanggal_masuk: {
             type: DataTypes.DATE,
             allowNull: true,
+            defaultValue: DataTypes.NOW, // Otomatis isi tanggal saat input
         },
         id_member: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: {
-                model: Member,
-                key: "id_member",
-            },
-            onUpdate: "CASCADE",
-            onDelete: "SET NULL",
+            // References ini opsional di level model jika sudah ada di migration/index.js
+            // Tapi bagus untuk dokumentasi kode
         },
     },
     {
-        tableName: "cabuy",
-        timestamps: false, // sesuai diagram (nggak ada created_at / updated_at)
+        // 🔥 PERBAIKAN UTAMA: Sesuaikan dengan nama tabel di database asli Anda
+        tableName: "cabuy", 
+        timestamps: false, 
     }
 );
 
-Member.hasMany(Cabuy, { foreignKey: "id_member" });
-
-
+// Hapus baris Member.hasMany(...) dari sini.
+// Biarkan relasi diatur oleh models/index.js agar rapi.
 
 module.exports = Cabuy;

@@ -29,7 +29,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/members", memberRoutes);  
 app.use("/api/kinerja-member", kinerjaMemberRoutes);
-app.use("/api/cabuys", cabuyRoutes);  
+app.use("/api/cabuy", cabuyRoutes);  
 app.use("/api/survey", surveyRoutes);
 app.use("/api/rumah", rumahRoutes);
 app.use("/api/rekomendasiai", rekomendasiaiRoutes);

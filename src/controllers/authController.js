@@ -1,53 +1,92 @@
-const Admin = require("../models/Admin");
-const Member = require("../models/Member");
-const bcrypt = require("bcrypt");
+// controllers/authController.js
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-exports.login = async (req, res) => {
-    const { email, password } = req.body;
+const Admin = require("../models/Admin");
+const { Member } = require("../models"); // dari models/index.js (yang export { Admin, Member, Cabuy, ... })
 
-    try {
-        // Cek di tabel admin dulu
-        let user = await Admin.findOne({ where: { email } });
+// Format respon biar seragam
+function buildLoginResponse({ id, nama, email, role, token }) {
+  return {
+    message: "Login berhasil",
+    token,
+    id,
+    nama,
+    role,
+    email,
+  };
+}
 
-        if (user) {
-            const match = await bcrypt.compare(password, user.password);
-            if (!match) return res.status(401).json({ message: "Password salah" });
+// POST /auth/login
+exports.unifiedLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
 
-            const token = jwt.sign(
-                { id: user.id_admin, role: "admin" },
-                process.env.JWT_SECRET
-            );
-
-            return res.json({
-                message: "Login sebagai admin",
-                role: "admin",
-                token,
-                nama: user.nama,
-            });
-        }
-
-        // Jika bukan admin → cek di tabel member
-        user = await Member.findOne({ where: { email } });
-
-        if (!user) return res.status(404).json({ message: "Email tidak ditemukan" });
-
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.status(401).json({ message: "Password salah" });
-
-        const token = jwt.sign(
-            { id: user.id_member, role: user.jabatan },
-            process.env.JWT_SECRET
-        );
-
-        return res.json({
-            message: "Login berhasil",
-            role: user.jabatan,
-            token,
-            nama: user.nama,
-        });
-
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email dan password wajib diisi" });
     }
+
+    // 1. Cek dulu ke tabel ADMIN
+    const admin = await Admin.findOne({ where: { email } });
+
+    if (admin) {
+      const match = await bcrypt.compare(password, admin.password);
+      if (!match) {
+        return res.status(400).json({ message: "Password salah" });
+      }
+
+      const token = jwt.sign(
+        { id: admin.id_admin, role: "admin" },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      return res.json(
+        buildLoginResponse({
+          id: admin.id_admin,
+          nama: admin.nama_admin,
+          email: admin.email,
+          role: "admin",
+          token,
+        })
+      );
+    }
+
+    // 2. Kalau bukan admin, cek ke tabel MEMBERS
+    const member = await Member.findOne({ where: { email } });
+
+    if (!member) {
+      return res.status(404).json({
+        message: "Email tidak terdaftar sebagai admin atau member",
+      });
+    }
+
+    const valid = await bcrypt.compare(password, member.password);
+    if (!valid) {
+      return res.status(400).json({ message: "Password salah" });
+    }
+
+    const token = jwt.sign(
+      { id: member.id_member, role: member.jabatan },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json(
+      buildLoginResponse({
+        id: member.id_member,
+        nama: member.nama,
+        email: member.email,
+        role: member.jabatan, // 'senior_leader' | 'leader' | 'member'
+        token,
+      })
+    );
+  } catch (err) {
+    console.error("UNIFIED LOGIN ERROR:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
 };

@@ -4,7 +4,7 @@ const router = express.Router();
 const cabuyController = require("../controllers/cabuyController");
 
 // GET semua cabuy
-router.get("/", cabuyController.getCabuys);
+router.get("/", cabuyController.getCabuy);
 
 // GET cabuy by id
 router.get("/:id", cabuyController.getCabuyById);
