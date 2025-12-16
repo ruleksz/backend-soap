@@ -38,7 +38,7 @@ app.use("/api/properti", propertiRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/member-dashboard", memberDashboardRoutes);
 
-// Test DB
+// Connect DB
 sequelize.sync()
     .then(() => console.log("✅ Database connected & synced..."))
     .catch((err) => console.error("DB Error:", err));
