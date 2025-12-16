@@ -26,6 +26,10 @@ const Properti = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    kontak_kontraktor: {
+      type: DataTypes.STRING,
+      allowNull:false,
+    },
     id_member: {
       type: DataTypes.INTEGER,
       allowNull: true,

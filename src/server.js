@@ -48,7 +48,6 @@ sequelize
     .sync({ alter: true }) // ⬅️ tambahkan alter: true sementara
     .then(() => {
         console.log("✅ Database synchronized successfully (with alter mode)!");
-        console.log("💡 Cek tabel cabuy,");
     })
     .catch((err) => {
         console.error("❌ Error syncing database:", err);

@@ -33,6 +33,19 @@ const Rumah = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
         },
+
+        // 🔹 kolom baru
+        unit: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        },
+        terjual: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        },
+
         image: {
             type: DataTypes.BLOB("long"),
             allowNull: true,
