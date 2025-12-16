@@ -59,14 +59,4 @@ Rumah.belongsTo(Properti, {
   as: "properti",
 });
 
-// 7. Rumah juga bisa punya hubungan ke Member (yang mengelola rumah) — optional
-Member.hasMany(Rumah, {
-  foreignKey: "id_member",
-  as: "rumah_binaan",
-});
-Rumah.belongsTo(Member, {
-  foreignKey: "id_member",
-  as: "member",
-});
-
 module.exports = { Admin, Member, Cabuy, Properti, Rumah };

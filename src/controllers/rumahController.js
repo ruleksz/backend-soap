@@ -56,10 +56,7 @@ exports.createRumah = [
   upload.single("image"),
   async (req, res) => {
     try {
-      let { tipe, lb, lt, jml_kamar, jml_lantai, harga, id_properti, id_member } = req.body;
-
-      // fallback id_member dari token (opsional)
-      if (!id_member && req.user && req.user.id) id_member = req.user.id;
+      let { tipe, lb, lt, jml_kamar, jml_lantai, harga, id_properti, unit, terjual } = req.body;
 
       if (!id_properti) {
         return res.status(400).json({ success: false, message: "id_properti diperlukan" });
@@ -79,12 +76,6 @@ exports.createRumah = [
         }
       }
 
-      // validasi member jika diberikan
-      if (id_member) {
-        const member = await Member.findByPk(id_member);
-        if (!member) return res.status(404).json({ success: false, message: "Member tidak ditemukan" });
-      }
-
       const rumah = await Rumah.create({
         tipe,
         lb,
@@ -93,8 +84,9 @@ exports.createRumah = [
         jml_lantai,
         harga,
         id_properti: Number(id_properti),
-        id_member: id_member ? Number(id_member) : null,
         image: req.file ? req.file.buffer : null,
+        unit,
+        terjual,
       });
 
       res.status(201).json({ success: true, message: "Rumah berhasil ditambahkan", data: rumah });
@@ -111,7 +103,7 @@ exports.updateRumah = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { tipe, lb, lt, jml_kamar, jml_lantai, harga, id_properti } = req.body;
+      const { tipe, lb, lt, jml_kamar, jml_lantai, harga, id_properti, unit, terjual } = req.body;
 
       const rumah = await Rumah.findByPk(id);
       if (!rumah) return res.status(404).json({ success: false, message: "Rumah tidak ditemukan" });
@@ -142,6 +134,8 @@ exports.updateRumah = [
         harga,
         id_properti: id_properti ? Number(id_properti) : rumah.id_properti,
         image: req.file ? req.file.buffer : rumah.image,
+        unit,
+        terjual,
       });
 
       res.status(200).json({ success: true, message: "Rumah berhasil diperbarui", data: rumah });

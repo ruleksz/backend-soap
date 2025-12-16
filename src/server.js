@@ -39,19 +39,19 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/member-dashboard", memberDashboardRoutes);
 
 // Test DB
-// sequelize.sync()
-//     .then(() => console.log("✅ Database connected & synced"))
-//     .catch((err) => console.error("DB Error:", err));
+sequelize.sync()
+    .then(() => console.log("✅ Database connected & synced..."))
+    .catch((err) => console.error("DB Error:", err));
 
 // 🔄 Sinkronisasi model dengan database
-sequelize
-    .sync({ alter: true }) // ⬅️ tambahkan alter: true sementara
-    .then(() => {
-        console.log("✅ Database synchronized successfully (with alter mode)!");
-    })
-    .catch((err) => {
-        console.error("❌ Error syncing database:", err);
-    });
+// sequelize
+//     .sync({ alter: true }) // ⬅️ tambahkan alter: true sementara
+//     .then(() => {
+//         console.log("✅ Database synchronized successfully (with alter mode)!");
+//     })
+//     .catch((err) => {
+//         console.error("❌ Error syncing database:", err);
+//     });
 
 // Start server
 const PORT = process.env.PORT || 5000;
