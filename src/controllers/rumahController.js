@@ -1,171 +1,278 @@
 // controllers/rumahController.js
 const Rumah = require("../models/Rumah");
 const Properti = require("../models/Properti");
-const Member = require("../models/Member");
 const multer = require("multer");
 
-// simpan file gambar ke memory (buffer)
+/* =========================
+   MULTER (IMAGE TO BUFFER)
+========================= */
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
-// 📄 GET semua Rumah
+/* =========================
+   GET ALL RUMAH
+========================= */
 exports.getAllRumah = async (req, res) => {
   try {
     const data = await Rumah.findAll({
       include: [
-        { model: Properti, as: "properti", attributes: ["id_properti", "nama_properti", "id_member"] },
+        {
+          model: Properti,
+          as: "properti",
+          attributes: ["id_properti", "nama_properti"],
+        },
       ],
       order: [["id_rumah", "DESC"]],
     });
 
-    const result = data.map((item) => {
-      const json = item.toJSON();
-      if (json.image) json.image = `data:image/jpeg;base64,${json.image.toString("base64")}`;
+    const result = data.map((r) => {
+      const json = r.toJSON();
+      if (json.image) {
+        json.image = `data:image/jpeg;base64,${json.image.toString("base64")}`;
+      }
       return json;
     });
 
-    res.status(200).json({ success: true, message: "Data rumah berhasil diambil", data: result });
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
   } catch (err) {
-    console.error("getAllRumah Error:", err);
-    res.status(500).json({ success: false, message: "Terjadi kesalahan saat mengambil data rumah" });
+    console.error("🔥 getAllRumah Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Gagal mengambil data rumah",
+    });
   }
 };
 
-// 📄 GET rumah berdasarkan ID
+/* =========================
+   GET RUMAH BY ID
+========================= */
 exports.getRumahById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const rumah = await Rumah.findByPk(id, {
-      include: [{ model: Properti, as: "properti", attributes: ["id_properti", "nama_properti", "id_member"] }],
+    const rumah = await Rumah.findByPk(req.params.id, {
+      include: [
+        {
+          model: Properti,
+          as: "properti",
+          attributes: ["id_properti", "nama_properti"],
+        },
+      ],
     });
 
-    if (!rumah) return res.status(404).json({ success: false, message: "Rumah tidak ditemukan" });
+    if (!rumah) {
+      return res.status(404).json({
+        success: false,
+        message: "Rumah tidak ditemukan",
+      });
+    }
 
     const data = rumah.toJSON();
-    if (data.image) data.image = `data:image/jpeg;base64,${data.image.toString("base64")}`;
+    if (data.image) {
+      data.image = `data:image/jpeg;base64,${data.image.toString("base64")}`;
+    }
 
-    res.status(200).json({ success: true, data });
+    res.status(200).json({
+      success: true,
+      data,
+    });
   } catch (err) {
-    console.error("getRumahById Error:", err);
-    res.status(500).json({ success: false, message: "Terjadi kesalahan saat mengambil data rumah" });
+    console.error("🔥 getRumahById Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Gagal mengambil detail rumah",
+    });
   }
 };
 
-// ➕ TAMBAH rumah baru
+/* =========================
+   CREATE RUMAH (SMART LOGIC)
+   - Jika TIPE + PROPERTI SUDAH ADA
+     → TAMBAH UNIT (UPDATE)
+   - Jika BELUM ADA
+     → INSERT BARU
+========================= */
 exports.createRumah = [
   upload.single("image"),
   async (req, res) => {
     try {
-      let { tipe, lb, lt, jml_kamar, jml_lantai, harga, id_properti, unit, terjual } = req.body;
-
-      if (!id_properti) {
-        return res.status(400).json({ success: false, message: "id_properti diperlukan" });
-      }
-
-      const properti = await Properti.findByPk(id_properti);
-      if (!properti) {
-        return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
-      }
-
-      // permission: admin boleh; non-admin hanya boleh tambah rumah jika dia owner properti
-      const requesterRole = req.user?.role;
-      const requesterId = req.user?.id;
-      if (requesterRole !== "admin") {
-        if (Number(properti.id_member) !== Number(requesterId)) {
-          return res.status(403).json({ success: false, message: "Anda tidak punya izin menambah rumah pada properti ini" });
-        }
-      }
-
-      const rumah = await Rumah.create({
+      let {
         tipe,
         lb,
         lt,
         jml_kamar,
         jml_lantai,
         harga,
-        id_properti: Number(id_properti),
-        image: req.file ? req.file.buffer : null,
         unit,
         terjual,
+        id_properti,
+      } = req.body;
+
+      if (!tipe || !id_properti) {
+        return res.status(400).json({
+          success: false,
+          message: "Tipe dan properti wajib diisi",
+        });
+      }
+
+      tipe = tipe.trim();
+
+      /* 🔍 CEK APAKAH TIPE SUDAH ADA DI PROPERTI INI */
+      const existing = await Rumah.findOne({
+        where: {
+          tipe,
+          id_properti: Number(id_properti),
+        },
       });
 
-      res.status(201).json({ success: true, message: "Rumah berhasil ditambahkan", data: rumah });
+      /* ===============================
+         JIKA SUDAH ADA → UPDATE UNIT
+      =============================== */
+      if (existing) {
+        const newUnit =
+          Number(existing.unit || 0) + Number(unit || 0);
+
+        await existing.update({ unit: newUnit });
+
+        return res.status(200).json({
+          success: true,
+          message: "Unit rumah berhasil ditambahkan",
+          data: existing,
+        });
+      }
+
+      /* ===============================
+         JIKA BELUM ADA → INSERT BARU
+      =============================== */
+      const rumah = await Rumah.create({
+        tipe,
+        lb: Number(lb),
+        lt: Number(lt),
+        jml_kamar: Number(jml_kamar),
+        jml_lantai: Number(jml_lantai),
+        harga: Number(harga),
+        unit: Number(unit),
+        terjual:
+          terjual === true ||
+          terjual === "true" ||
+          terjual === 1 ||
+          terjual === "1"
+            ? 1
+            : 0,
+        id_properti: Number(id_properti),
+        image: req.file ? req.file.buffer : null,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Rumah berhasil ditambahkan",
+        data: rumah,
+      });
     } catch (err) {
-      console.error("createRumah Error:", err);
-      res.status(500).json({ success: false, message: "Gagal menambahkan rumah" });
+      console.error("🔥 createRumah Error:", err);
+      res.status(500).json({
+        success: false,
+        message: "Gagal menambahkan rumah",
+        error: err.message,
+      });
     }
   },
 ];
 
-// ✏️ UPDATE rumah berdasarkan ID
+/* =========================
+   UPDATE RUMAH
+========================= */
+/* =========================
+   UPDATE RUMAH (FIXED)
+========================= */
 exports.updateRumah = [
-  upload.single("image"),
+  upload.single("image"), // Middleware Multer
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { tipe, lb, lt, jml_kamar, jml_lantai, harga, id_properti, unit, terjual } = req.body;
-
+      
+      // 1. Cek apakah Rumah ada
       const rumah = await Rumah.findByPk(id);
-      if (!rumah) return res.status(404).json({ success: false, message: "Rumah tidak ditemukan" });
-
-      // jika id_properti diubah, pastikan properti baru ada
-      if (id_properti) {
-        const propertiBaru = await Properti.findByPk(id_properti);
-        if (!propertiBaru) return res.status(404).json({ success: false, message: "Properti tujuan tidak ditemukan" });
+      if (!rumah) {
+        return res.status(404).json({
+          success: false,
+          message: "Rumah tidak ditemukan",
+        });
       }
 
-      // permission: admin boleh; atau owner properti lama boleh (dan/atau owner properti baru jika pindah) 
-      const requesterRole = req.user?.role;
-      const requesterId = req.user?.id;
-      if (requesterRole !== "admin") {
-        // ambil properti terkait rumah saat ini
-        const propertiSaatIni = await Properti.findByPk(rumah.id_properti);
-        if (!propertiSaatIni || Number(propertiSaatIni.id_member) !== Number(requesterId)) {
-          return res.status(403).json({ success: false, message: "Anda tidak punya izin memperbarui rumah ini" });
-        }
-      }
+      // 2. Parsing Data (PENTING untuk FormData)
+      // Karena FormData mengirim "null" atau "undefined" sebagai STRING, kita harus hati-hati.
+      const body = req.body;
 
+      // Helper function untuk parsing angka
+      const parseNum = (val, original) => {
+        if (val === undefined || val === null || val === "") return original;
+        return Number(val);
+      };
+
+      // Helper function untuk parsing boolean (terjual)
+      const parseBool = (val, original) => {
+         if (val === undefined) return original;
+         // Cek string "true", "1", atau boolean true
+         return (val === "true" || val === "1" || val === true || val === 1) ? 1 : 0;
+      };
+
+      // 3. Lakukan Update
       await rumah.update({
-        tipe,
-        lb,
-        lt,
-        jml_kamar,
-        jml_lantai,
-        harga,
-        id_properti: id_properti ? Number(id_properti) : rumah.id_properti,
+        tipe: body.tipe || rumah.tipe, // String aman
+        lb: parseNum(body.lb, rumah.lb),
+        lt: parseNum(body.lt, rumah.lt),
+        jml_kamar: parseNum(body.jml_kamar, rumah.jml_kamar),
+        jml_lantai: parseNum(body.jml_lantai, rumah.jml_lantai),
+        harga: parseNum(body.harga, rumah.harga),
+        unit: parseNum(body.unit, rumah.unit),
+        terjual: parseBool(body.terjual, rumah.terjual),
+        // Cek apakah ada file baru? Jika tidak, pakai yg lama
         image: req.file ? req.file.buffer : rumah.image,
-        unit,
-        terjual,
       });
 
-      res.status(200).json({ success: true, message: "Rumah berhasil diperbarui", data: rumah });
+      res.status(200).json({
+        success: true,
+        message: "Rumah berhasil diperbarui",
+        data: rumah,
+      });
+
     } catch (err) {
-      console.error("updateRumah Error:", err);
-      res.status(500).json({ success: false, message: "Gagal memperbarui rumah" });
+      console.error("🔥 updateRumah Error:", err);
+      res.status(500).json({
+        success: false,
+        message: "Gagal memperbarui rumah",
+        error: err.message
+      });
     }
   },
 ];
 
-// 🗑️ HAPUS rumah berdasarkan ID
+/* =========================
+   DELETE RUMAH
+========================= */
 exports.deleteRumah = async (req, res) => {
   try {
-    const { id } = req.params;
-    const rumah = await Rumah.findByPk(id);
-    if (!rumah) return res.status(404).json({ success: false, message: "Rumah tidak ditemukan" });
-
-    const requesterRole = req.user?.role;
-    const requesterId = req.user?.id;
-    if (requesterRole !== "admin") {
-      const properti = await Properti.findByPk(rumah.id_properti);
-      if (!properti || Number(properti.id_member) !== Number(requesterId)) {
-        return res.status(403).json({ success: false, message: "Anda tidak punya izin menghapus rumah ini" });
-      }
+    const rumah = await Rumah.findByPk(req.params.id);
+    if (!rumah) {
+      return res.status(404).json({
+        success: false,
+        message: "Rumah tidak ditemukan",
+      });
     }
 
     await rumah.destroy();
-    res.status(200).json({ success: true, message: "Rumah berhasil dihapus" });
+
+    res.status(200).json({
+      success: true,
+      message: "Rumah berhasil dihapus",
+    });
   } catch (err) {
-    console.error("deleteRumah Error:", err);
-    res.status(500).json({ success: false, message: "Gagal menghapus rumah" });
+    console.error("🔥 deleteRumah Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Gagal menghapus rumah",
+    });
   }
 };
