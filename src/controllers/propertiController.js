@@ -94,7 +94,7 @@ exports.getPropertiById = async (req, res) => {
 // =============================
 exports.createProperti = async (req, res) => {
   try {
-    let { nama_properti, deskripsi, lokasi, kontraktor, kontak_konraktor, id_member } = req.body;
+    let { nama_properti, deskripsi, lokasi, kontraktor, kontak_kontraktor, id_member } = req.body;
 
     if (!id_member && req.user) {
       id_member = req.user.id;
@@ -118,7 +118,7 @@ exports.createProperti = async (req, res) => {
       deskripsi,
       lokasi,
       kontraktor,
-      kontak_konraktor,
+      kontak_kontraktor,
       id_member,
     });
 
