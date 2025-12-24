@@ -9,11 +9,6 @@ exports.getAllProperti = async (req, res) => {
     const data = await Properti.findAll({
       include: [
         {
-          model: Member,
-          as: "owner_senior",
-          attributes: ["id_member", "nama", "email"], // kontak DIHAPUS
-        },
-        {
           model: Rumah,
           as: "rumahs",
         }
@@ -53,11 +48,6 @@ exports.getPropertiById = async (req, res) => {
     const data = await Properti.findByPk(req.params.id, {
       include: [
         {
-          model: Member,
-          as: "owner_senior",
-          attributes: ["id_member", "nama", "email"], // kontak DIHAPUS
-        },
-        {
           model: Rumah,
           as: "rumahs",
         }
@@ -94,24 +84,7 @@ exports.getPropertiById = async (req, res) => {
 // =============================
 exports.createProperti = async (req, res) => {
   try {
-    let { nama_properti, deskripsi, lokasi, kontraktor, kontak_kontraktor, id_member } = req.body;
-
-    if (!id_member && req.user) {
-      id_member = req.user.id;
-    }
-
-    if (!id_member) {
-      return res.status(400).json({ success: false, message: "id_member diperlukan" });
-    }
-
-    const owner = await Member.findByPk(id_member);
-    if (!owner) {
-      return res.status(404).json({ success: false, message: "Member tidak ditemukan" });
-    }
-
-    if (owner.jabatan !== "senior_leader") {
-      return res.status(403).json({ success: false, message: "Hanya Senior Leader yang dapat menjadi owner properti" });
-    }
+    let { nama_properti, deskripsi, lokasi, kontraktor, kontak_kontraktor } = req.body;
 
     const newProperti = await Properti.create({
       nama_properti,
@@ -119,7 +92,6 @@ exports.createProperti = async (req, res) => {
       lokasi,
       kontraktor,
       kontak_kontraktor,
-      id_member,
     });
 
     return res.status(201).json({
