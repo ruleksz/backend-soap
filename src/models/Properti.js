@@ -14,11 +14,15 @@ const Properti = sequelize.define(
       allowNull: false,
     },
     deskripsi: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     lokasi: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    image: {
+      type: DataTypes.BLOB("long"),
       allowNull: true,
     },
     kontraktor: {
@@ -27,7 +31,6 @@ const Properti = sequelize.define(
     },
     kontak_kontraktor: {
       type: DataTypes.STRING,
-      allowNull:false,
     },
   },
   {
