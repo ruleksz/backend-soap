@@ -22,6 +22,10 @@ const Member = sequelize.define(
             type: DataTypes.STRING,
             allowNull: false,
         },
+        kontak: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
         jabatan: {
             type: DataTypes.ENUM("senior_leader", "leader", "member"),
             allowNull: false,

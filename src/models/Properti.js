@@ -1,6 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
-const Member = require("./Member");
+
 
 const Properti = sequelize.define(
   "Properti",
@@ -15,11 +15,15 @@ const Properti = sequelize.define(
       allowNull: false,
     },
     deskripsi: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     lokasi: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    image: {
+      type: DataTypes.BLOB("long"),
       allowNull: true,
     },
     kontraktor: {
@@ -28,17 +32,7 @@ const Properti = sequelize.define(
     },
     kontak_kontraktor: {
       type: DataTypes.STRING,
-      allowNull:false,
-    },
-    id_member: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: Member,
-        key: "id_member",
-      },
-      onUpdate: "CASCADE",
-      onDelete: "CASCADE",
+      allowNull: false,
     },
   },
   {
