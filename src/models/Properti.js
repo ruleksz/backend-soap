@@ -1,7 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
-
 const Properti = sequelize.define(
   "Properti",
   {
@@ -32,7 +31,7 @@ const Properti = sequelize.define(
     },
     kontak_kontraktor: {
       type: DataTypes.STRING,
-      allowNull: false,
+
     },
   },
   {
