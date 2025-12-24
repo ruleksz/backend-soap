@@ -31,7 +31,6 @@ const Properti = sequelize.define(
     },
     kontak_kontraktor: {
       type: DataTypes.STRING,
-
     },
   },
   {
