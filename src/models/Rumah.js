@@ -30,7 +30,7 @@ const Rumah = sequelize.define(
             allowNull: false,
         },
         harga: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.DECIMAL(15,2),
             allowNull: false,
         },
 
