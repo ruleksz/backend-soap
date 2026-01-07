@@ -8,52 +8,88 @@ exports.getAllKinerja = async (req, res) => {
             include: [
                 {
                     model: Member,
-                    attributes: ["id_member", "nama_member", "kontak", "id_admin", "jabatan", "leader_id", "email"],
+                    attributes: [
+                        "id_member",
+                        "nama",
+                        "kontak",
+                        "id_admin",
+                        "jabatan",
+                        "id_leader",   // ✅ FIX: ganti dari leader_id
+                        "email",
+                    ],
                 },
             ],
+            order: [["id_kinerja", "DESC"]],
         });
 
         res.status(200).json({
+            success: true,
             message: "Data kinerja member berhasil diambil",
             data,
         });
     } catch (error) {
-        console.error("Error getAllKinerja:", error);
-        res.status(500).json({ message: "Gagal mengambil data kinerja member" });
+        console.error("❌ Error getAllKinerja:", error);
+        res.status(500).json({
+            success: false,
+            message: "Gagal mengambil data kinerja member",
+            error: error.message,
+        });
     }
 };
 
-// 🔹 GET satu data kinerja member berdasarkan id_kinerja
+// 🔹 GET satu data kinerja member
 exports.getKinerjaById = async (req, res) => {
     try {
         const { id } = req.params;
+
         const data = await KinerjaMember.findByPk(id, {
             include: [
                 {
                     model: Member,
-                    attributes: ["id_member", "nama_member", "kontak", "id_admin", "jabatan", "leader_id", "email"],
+                    attributes: [
+                        "id_member",
+                        "nama",
+                        "kontak",
+                        "id_admin",
+                        "jabatan",
+                        "id_leader",
+                        "email",
+                    ],
                 },
             ],
         });
 
         if (!data)
-            return res.status(404).json({ message: "Kinerja member tidak ditemukan" });
+            return res.status(404).json({
+                success: false,
+                message: "Kinerja member tidak ditemukan",
+            });
 
-        res.status(200).json(data);
+        res.status(200).json({
+            success: true,
+            data,
+        });
     } catch (error) {
-        console.error("Error getKinerjaById:", error);
-        res.status(500).json({ message: "Gagal mengambil data kinerja member" });
+        console.error("❌ Error getKinerjaById:", error);
+        res.status(500).json({
+            success: false,
+            message: "Gagal mengambil data kinerja member",
+            error: error.message,
+        });
     }
 };
 
-// 🔹 CREATE data kinerja baru
+// 🔹 CREATE data kinerja
 exports.createKinerja = async (req, res) => {
     try {
         const { id_member, jumlah_proyek, jumlah_followup, rate } = req.body;
 
         const member = await Member.findByPk(id_member);
         if (!member)
-            return res.status(404).json({ message: "Member tidak ditemukan" });
+            return res.status(404).json({
+                success: false,
+                message: "Member tidak ditemukan",
+            });
 
         const newKinerja = await KinerjaMember.create({
             id_member,
@@ -63,16 +99,21 @@ exports.createKinerja = async (req, res) => {
         });
 
         res.status(201).json({
+            success: true,
             message: "Kinerja member berhasil ditambahkan",
             data: newKinerja,
         });
     } catch (error) {
-        console.error("Error createKinerja:", error);
-        res.status(500).json({ message: "Gagal menambahkan kinerja member" });
+        console.error("❌ Error createKinerja:", error);
+        res.status(500).json({
+            success: false,
+            message: "Gagal menambahkan kinerja member",
+            error: error.message,
+        });
     }
 };
 
-// 🔹 UPDATE data kinerja member
+// 🔹 UPDATE data kinerja
 exports.updateKinerja = async (req, res) => {
     try {
         const { id } = req.params;
@@ -80,7 +121,10 @@ exports.updateKinerja = async (req, res) => {
 
         const kinerja = await KinerjaMember.findByPk(id);
         if (!kinerja)
-            return res.status(404).json({ message: "Kinerja member tidak ditemukan" });
+            return res.status(404).json({
+                success: false,
+                message: "Kinerja member tidak ditemukan",
+            });
 
         await kinerja.update({
             jumlah_proyek,
@@ -89,29 +133,44 @@ exports.updateKinerja = async (req, res) => {
         });
 
         res.status(200).json({
+            success: true,
             message: "Data kinerja member berhasil diperbarui",
             data: kinerja,
         });
     } catch (error) {
-        console.error("Error updateKinerja:", error);
-        res.status(500).json({ message: "Gagal memperbarui data kinerja member" });
+        console.error("❌ Error updateKinerja:", error);
+        res.status(500).json({
+            success: false,
+            message: "Gagal memperbarui data kinerja member",
+            error: error.message,
+        });
     }
 };
 
-// 🔹 DELETE data kinerja member
+// 🔹 DELETE data kinerja
 exports.deleteKinerja = async (req, res) => {
     try {
         const { id } = req.params;
 
         const kinerja = await KinerjaMember.findByPk(id);
         if (!kinerja)
-            return res.status(404).json({ message: "Kinerja member tidak ditemukan" });
+            return res.status(404).json({
+                success: false,
+                message: "Kinerja member tidak ditemukan",
+            });
 
         await kinerja.destroy();
 
-        res.status(200).json({ message: "Kinerja member berhasil dihapus" });
+        res.status(200).json({
+            success: true,
+            message: "Kinerja member berhasil dihapus",
+        });
     } catch (error) {
-        console.error("Error deleteKinerja:", error);
-        res.status(500).json({ message: "Gagal menghapus data kinerja member" });
+        console.error("❌ Error deleteKinerja:", error);
+        res.status(500).json({
+            success: false,
+            message: "Gagal menghapus data kinerja member",
+            error: error.message,
+        });
     }
 };

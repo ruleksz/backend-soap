@@ -8,15 +8,41 @@ exports.getAllCrm = async (req, res) => {
     try {
         const data = await Crm.findAll({
             include: [
-                { model: Member, attributes: ["id_member", "nama_member", "jabatan", "leader_id", "kontak", "id_admin"] },
-                { model: Cabuy, attributes: ["id_cabuy", "nama_cabuy", "kontak", "status", "tanggal_follow_up", "tanggal_masuk", "id_member"] },
+                {
+                    model: Member,
+                    attributes: ["id_member", "nama", "jabatan", "id_leader", "kontak", "id_admin"],
+                },
+                {
+                    model: Cabuy,
+                    attributes: [
+                        "id_cabuy",
+                        "nama_cabuy",
+                        "kontak",
+                        "status",
+                        "tanggal_follow_up",
+                        "tanggal_masuk",
+                        "id_member",
+                    ],
+                },
             ],
+            order: [["id_crm", "DESC"]],
         });
-        res.json(data);
+
+        res.status(200).json({
+            success: true,
+            message: "Data CRM berhasil diambil",
+            data,   // 🔥 penting: FE baca dari sini
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error("❌ Error getAllCrm:", err);
+        res.status(500).json({
+            success: false,
+            message: "Gagal mengambil data CRM",
+            error: err.message,
+        });
     }
 };
+
 
 // 🔹 GET CRM berdasarkan ID
 exports.getCrmById = async (req, res) => {

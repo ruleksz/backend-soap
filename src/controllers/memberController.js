@@ -96,8 +96,9 @@ exports.getMembers = async (req, res) => {
 
       // --- C. ADMIN (lihat SENIOR LEADER) ---
     } else if (role === "admin") {
+      // Admin boleh melihat SEMUA member
       finalResult = await Member.findAll({
-        where: { jabatan: "senior_leader" },
+
         order: [["id_member", "DESC"]],
       });
     } else {
@@ -111,6 +112,87 @@ exports.getMembers = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+// --- D. ADMIN (lihat Leader dan member bawahannya) ---
+exports.getLeadersWithMembers = async (req, res) => {
+  try {
+    const { role } = req.user;
+
+    // 🔒 Hanya admin
+    if (role !== "admin") {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    const leaders = await Member.findAll({
+      where: { jabatan: "leader" },
+      include: [
+        {
+          model: Member,
+          as: "members_bawahan",
+          where: { jabatan: "member" },
+          required: false, // leader tanpa member tetap tampil
+          attributes: ["id_member", "nama", "email", "kontak"],
+        },
+      ],
+      order: [["id_member", "DESC"]],
+    });
+
+    res.json({
+      success: true,
+      leaders,
+    });
+  } catch (err) {
+    console.error("Error getLeadersWithMembers:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
+exports.getLeadersMembersCabuys = async (req, res) => {
+  try {
+    const { role } = req.user;
+
+    if (role !== "admin") {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    const leaders = await Member.findAll({
+      where: { jabatan: "member" },
+      include: [
+        {
+          model: Member,
+          as: "members_bawahan",
+          where: { jabatan: "member" },
+          required: false,
+          include: [
+            {
+              model: Cabuy,
+              as: "cabuys",
+              attributes: ["id_cabuy", "nama", "email", "kontak"],
+            },
+          ],
+        },
+      ],
+      order: [["id_member", "DESC"]],
+    });
+
+    res.json({
+      success: true,
+      leaders,
+    });
+  } catch (err) {
+    console.error("Error getLeadersMembersCabuys:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
 
 // ------------------------------------------------------------------
 // 3. CREATE MEMBER (HIERARKI OTOMATIS)

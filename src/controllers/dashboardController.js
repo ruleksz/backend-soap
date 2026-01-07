@@ -1,41 +1,44 @@
-const Admin = require("../models/Admin");
-const Member = require("../models/Member");
-const Properti = require("../models/Properti");
-const Survey = require("../models/Survey");
-const Rumah = require("../models/Rumah");
+const Member = require("../models/Member.js");
+const Rumah = require("../models/Rumah.js");
+const Survey = require("../models/Survey.js");
+const Properti = require("../models/Properti.js");
+const Cabuy = require("../models/Cabuy.js");
 
-exports.getDashboardStats = async (req, res) => {
+exports.getAdminDashboardStats = async (req, res) => {
   try {
-    // Hitung total berdasarkan id_admin (kalau perlu filter per admin)
-    const adminId = req.user?.id_admin || req.query.id_admin; // opsional
+    const { role } = req.user;
 
-    const memberCount = await Member.count({
-      where: adminId ? { id_admin: adminId } : {},
-    });
+    // 🔒 hanya admin
+    if (role !== "admin") {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
 
-    const propertiCount = await Properti.count({
-      where: adminId ? { id_admin: adminId } : {},
-    });
+    const [
+      totalMembers,
+      totalRumah,
+      totalSurvey,
+      totalProperti,
+      totalCabuy,
+    ] = await Promise.all([
+      Member.count(),            // semua member
+      Rumah.count(),             // semua rumah
+      Survey.count(),            // semua survey
+      Properti.count(),          // semua properti
+      Cabuy.count(),          // semua cabuy
+    ]);
 
-    const surveyCount = await Survey.count({
-      where: adminId ? { id_admin: adminId } : {},
+    res.json({
+      senior_leaderCount: totalMembers,
+      rumahCount: totalRumah,
+      surveyCount: totalSurvey,
+      propertiCount: totalProperti,
+      cabuyCount: totalCabuy,
     });
-
-    const rumahCount = await Rumah.count({
-      where: adminId ? { id_admin: adminId } : {},
-    });
-
-    res.status(200).json({
-      memberCount,
-      propertiCount,
-      surveyCount,
-      rumahCount,
-    });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("Dashboard Admin Error:", err);
     res.status(500).json({
-      message: "Gagal mengambil data dashboard",
-      error: error.message,
+      message: "Gagal memuat data dashboard",
+      error: err.message,
     });
   }
 };

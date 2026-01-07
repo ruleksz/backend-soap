@@ -5,17 +5,19 @@ const Cabuy = require("../models/Cabuy");
 const Rumah = require("../models/Rumah");
 
 //
-// 📌 Helper untuk format tanggal ke ISO / MySQL (opsional)
+// 📌 Helper format datetime
 //
 const formatDateTime = (date) => {
     if (!date) return null;
     const d = new Date(date);
     const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
+        d.getHours()
+    )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
 //
-// 🔹 GET semua data survey
+// 🔹 GET semua data survey (ADMIN MONITORING)
 //
 exports.getAllSurvey = async (req, res) => {
     try {
@@ -23,15 +25,25 @@ exports.getAllSurvey = async (req, res) => {
             include: [
                 {
                     model: Member,
-                    attributes: ["id_member", "nama_member", "level", "kontak"],
+                    // ⚠️ pakai kolom yang benar di tabel member
+                    attributes: ["id_member", "nama", "kontak"],
                 },
                 {
                     model: Cabuy,
-                    attributes: ["id_cabuy", "nama_cabuy", "kontak", "email", "status"],
+                    attributes: ["id_cabuy", "nama_cabuy", "kontak", "status"],
                 },
                 {
                     model: Rumah,
-                    attributes: ["id_rumah", "tipe", "lt", "lb", "jml_kamar", "jml_lantai", "image", "id_properti"],
+                    attributes: [
+                        "id_rumah",
+                        "tipe",
+                        "lt",
+                        "lb",
+                        "jml_kamar",
+                        "jml_lantai",
+                        "image",
+                        "id_properti",
+                    ],
                 },
             ],
             order: [["id_survey", "ASC"]],
@@ -44,7 +56,11 @@ exports.getAllSurvey = async (req, res) => {
         });
     } catch (error) {
         console.error("❌ Error getAllSurvey:", error);
-        res.status(500).json({ success: false, message: "Gagal mengambil data survey", error: error.message });
+        res.status(500).json({
+            success: false,
+            message: "Gagal mengambil data survey",
+            error: error.message,
+        });
     }
 };
 
@@ -57,21 +73,44 @@ exports.getSurveyById = async (req, res) => {
 
         const data = await Survey.findByPk(id, {
             include: [
-                { model: Admin, attributes: ["id_admin", "nama_admin"] },
-                { model: Member, attributes: ["id_member", "nama_member"] },
-                { model: Cabuy, attributes: ["id_cabuy", "nama_cabuy"] },
-                { model: Rumah, attributes: ["id_rumah", "tipe", "lt", "lb", "jml_kamar", "jml_lantai", "image", "id_properti"] },
+                {
+                    model: Member,
+                    attributes: ["id_member", "nama"],
+                },
+                {
+                    model: Cabuy,
+                    attributes: ["id_cabuy", "nama"],
+                },
+                {
+                    model: Rumah,
+                    attributes: [
+                        "id_rumah",
+                        "tipe",
+                        "lt",
+                        "lb",
+                        "jml_kamar",
+                        "jml_lantai",
+                        "image",
+                        "id_properti",
+                    ],
+                },
             ],
         });
 
         if (!data) {
-            return res.status(404).json({ success: false, message: "Survey tidak ditemukan" });
+            return res
+                .status(404)
+                .json({ success: false, message: "Survey tidak ditemukan" });
         }
 
         res.status(200).json({ success: true, data });
     } catch (error) {
         console.error("❌ Error getSurveyById:", error);
-        res.status(500).json({ success: false, message: "Gagal mengambil data survey", error: error.message });
+        res.status(500).json({
+            success: false,
+            message: "Gagal mengambil data survey",
+            error: error.message,
+        });
     }
 };
 
@@ -80,7 +119,8 @@ exports.getSurveyById = async (req, res) => {
 //
 exports.createSurvey = async (req, res) => {
     try {
-        const { id_cabuy, id_member, id_rumah, status_survey, tanggal_survey } = req.body;
+        const { id_cabuy, id_member, id_rumah, status_survey, tanggal_survey } =
+            req.body;
 
         // 🔸 Validasi foreign key
         const [cabuy, member, rumah] = await Promise.all([
@@ -90,7 +130,10 @@ exports.createSurvey = async (req, res) => {
         ]);
 
         if (!cabuy || !member || !rumah) {
-            return res.status(400).json({ success: false, message: "Data relasi (Cabuy, Member, Rumah) tidak valid" });
+            return res.status(400).json({
+                success: false,
+                message: "Data relasi (Cabuy, Member, Rumah) tidak valid",
+            });
         }
 
         const newSurvey = await Survey.create({
@@ -108,7 +151,11 @@ exports.createSurvey = async (req, res) => {
         });
     } catch (error) {
         console.error("❌ Error createSurvey:", error);
-        res.status(500).json({ success: false, message: "Gagal menambahkan data survey", error: error.message });
+        res.status(500).json({
+            success: false,
+            message: "Gagal menambahkan data survey",
+            error: error.message,
+        });
     }
 };
 
@@ -118,11 +165,15 @@ exports.createSurvey = async (req, res) => {
 exports.updateSurvey = async (req, res) => {
     try {
         const { id } = req.params;
-        const { id_cabuy, id_member, id_rumah, status_survey, tanggal_survey } = req.body;
+        const { id_cabuy, id_member, id_rumah, status_survey, tanggal_survey } =
+            req.body;
 
         const survey = await Survey.findByPk(id);
         if (!survey) {
-            return res.status(404).json({ success: false, message: "Data survey tidak ditemukan" });
+            return res.status(404).json({
+                success: false,
+                message: "Data survey tidak ditemukan",
+            });
         }
 
         await survey.update({
@@ -130,7 +181,9 @@ exports.updateSurvey = async (req, res) => {
             id_member: id_member ?? survey.id_member,
             id_rumah: id_rumah ?? survey.id_rumah,
             status_survey: status_survey ?? survey.status_survey,
-            tanggal_survey: tanggal_survey ? formatDateTime(tanggal_survey) : survey.tanggal_survey,
+            tanggal_survey: tanggal_survey
+                ? formatDateTime(tanggal_survey)
+                : survey.tanggal_survey,
         });
 
         res.status(200).json({
@@ -140,7 +193,11 @@ exports.updateSurvey = async (req, res) => {
         });
     } catch (error) {
         console.error("❌ Error updateSurvey:", error);
-        res.status(500).json({ success: false, message: "Gagal memperbarui data survey", error: error.message });
+        res.status(500).json({
+            success: false,
+            message: "Gagal memperbarui data survey",
+            error: error.message,
+        });
     }
 };
 
@@ -153,14 +210,23 @@ exports.deleteSurvey = async (req, res) => {
 
         const survey = await Survey.findByPk(id);
         if (!survey) {
-            return res.status(404).json({ success: false, message: "Data survey tidak ditemukan" });
+            return res.status(404).json({
+                success: false,
+                message: "Data survey tidak ditemukan",
+            });
         }
 
         await survey.destroy();
 
-        res.status(200).json({ success: true, message: "Data survey berhasil dihapus" });
+        res
+            .status(200)
+            .json({ success: true, message: "Data survey berhasil dihapus" });
     } catch (error) {
         console.error("❌ Error deleteSurvey:", error);
-        res.status(500).json({ success: false, message: "Gagal menghapus data survey", error: error.message });
+        res.status(500).json({
+            success: false,
+            message: "Gagal menghapus data survey",
+            error: error.message,
+        });
     }
 };

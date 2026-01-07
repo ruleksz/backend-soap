@@ -7,7 +7,9 @@ const {
     createMember,
     loginMember,
     updateMember,
-    deleteMember
+    deleteMember,
+    getLeadersWithMembers,
+    getLeadersMembersCabuys
 } = require("../controllers/memberController");
 
 // 🔹 Login member
@@ -15,6 +17,11 @@ router.post("/login", loginMember);
 
 // 🔹 Get all members (protected)
 router.get("/", auth, getMembers);
+
+router.get("/leaders-with-members", auth, getLeadersWithMembers);
+
+router.get("/leaders-members-cabuys", auth, getLeadersMembersCabuys);
+
 
 // 🔹 Create member (protected)
 router.post("/", auth, createMember);
