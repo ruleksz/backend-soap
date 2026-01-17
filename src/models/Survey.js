@@ -44,7 +44,7 @@ const Survey = sequelize.define(
       onDelete: "CASCADE",
     },
     status_survey: {
-      type: DataTypes.ENUM("Sudah", "Belum"),
+      type: DataTypes.ENUM("Sudah", "Menunggu Validasi", "Belum"),
       defaultValue: "Belum",
     },
     tanggal_survey: {

@@ -99,6 +99,7 @@ exports.createRumah = [
     try {
       let {
         tipe,
+        deskripsi,
         lb,
         lt,
         jml_kamar,
@@ -127,7 +128,7 @@ exports.createRumah = [
       });
 
       /* ===============================
-         JIKA SUDAH ADA → UPDATE UNIT
+        JIKA SUDAH ADA → UPDATE UNIT
       =============================== */
       if (existing) {
         const newUnit =
@@ -143,10 +144,11 @@ exports.createRumah = [
       }
 
       /* ===============================
-         JIKA BELUM ADA → INSERT BARU
+        JIKA BELUM ADA → INSERT BARU
       =============================== */
       const rumah = await Rumah.create({
         tipe,
+        deskripsi,
         lb: Number(lb),
         lt: Number(lt),
         jml_kamar: Number(jml_kamar),
@@ -155,9 +157,9 @@ exports.createRumah = [
         unit: Number(unit),
         terjual:
           terjual === true ||
-          terjual === "true" ||
-          terjual === 1 ||
-          terjual === "1"
+            terjual === "true" ||
+            terjual === 1 ||
+            terjual === "1"
             ? 1
             : 0,
         id_properti: Number(id_properti),
@@ -191,7 +193,7 @@ exports.updateRumah = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       // 1. Cek apakah Rumah ada
       const rumah = await Rumah.findByPk(id);
       if (!rumah) {
@@ -213,14 +215,15 @@ exports.updateRumah = [
 
       // Helper function untuk parsing boolean (terjual)
       const parseBool = (val, original) => {
-         if (val === undefined) return original;
-         // Cek string "true", "1", atau boolean true
-         return (val === "true" || val === "1" || val === true || val === 1) ? 1 : 0;
+        if (val === undefined) return original;
+        // Cek string "true", "1", atau boolean true
+        return (val === "true" || val === "1" || val === true || val === 1) ? 1 : 0;
       };
 
       // 3. Lakukan Update
       await rumah.update({
         tipe: body.tipe || rumah.tipe, // String aman
+        deskripsi: body.deskripsi || rumah.deskripsi,
         lb: parseNum(body.lb, rumah.lb),
         lt: parseNum(body.lt, rumah.lt),
         jml_kamar: parseNum(body.jml_kamar, rumah.jml_kamar),

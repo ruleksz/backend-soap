@@ -1,4 +1,3 @@
-// src/controllers/memberController.js
 const { Member, Cabuy } = require("../models");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -26,7 +25,7 @@ exports.loginMember = async (req, res) => {
       message: "Login berhasil",
       token,
       id: member.id_member,
-      nama: member.nama,        // di DB kolomnya 'nama'
+      nama: member.nama,
       role: member.jabatan,
       email: member.email,
     });
@@ -37,192 +36,108 @@ exports.loginMember = async (req, res) => {
 };
 
 // ------------------------------------------------------------------
-// 2. GET MEMBERS (DASHBOARD LOGIC)
+// 2. GET MEMBERS (KHUSUS MEMBER ROLE = "member")
+//    → tampil di ADMIN, SENIOR LEADER, LEADER
 // ------------------------------------------------------------------
+/* =====================================================
+   1. GET MEMBER (READ)
+   → admin, senior_leader, leader
+===================================================== */
 exports.getMembers = async (req, res) => {
   try {
     const { id, role } = req.user;
-    let finalResult = [];
+    let result = [];
 
-    // --- A. SENIOR LEADER (lihat LEADER & jumlah member bawahan mereka) ---
-    if (role === "senior_leader") {
+    // ---------------- ADMIN ----------------
+    if (role === "admin") {
+      result = await Member.findAll({
+        where: { jabatan: "member" },
+        order: [["id_member", "DESC"]],
+      });
+    }
+
+    // ---------------- SENIOR LEADER ----------------
+    else if (role === "senior_leader") {
+      // ambil semua leader di bawah senior
       const leaders = await Member.findAll({
+        where: { id_senior: id, jabatan: "leader" },
+        attributes: ["id_member"],
+      });
+
+      const leaderIds = leaders.map(l => l.id_member);
+
+      result = await Member.findAll({
         where: {
-          id_senior: id,
-          jabatan: "leader",         // 🔒 pastikan hanya leader
+          jabatan: "member",
+          id_leader: leaderIds,
         },
-        include: [
-          {
-            model: Member,
-            as: "members_bawahan",
-            attributes: ["id_member"],
-          },
-        ],
         order: [["id_member", "DESC"]],
       });
+    }
 
-      finalResult = leaders.map((l) => {
-        const item = l.toJSON();
-        item.total_members = item.members_bawahan
-          ? item.members_bawahan.length
-          : 0;
-        delete item.members_bawahan;
-        return item;
-      });
-
-      // --- B. LEADER (lihat MEMBER & jumlah leads mereka) ---
-    } else if (role === "leader") {
-      const members = await Member.findAll({
+    // ---------------- LEADER ----------------
+    else if (role === "leader") {
+      result = await Member.findAll({
         where: {
+          jabatan: "member",
           id_leader: id,
-          jabatan: "member",        // 🔒 pastikan hanya member
         },
-        include: [
-          {
-            model: Cabuy,
-            as: "leads",
-            attributes: ["id_cabuy"],
-          },
-        ],
         order: [["id_member", "DESC"]],
       });
+    }
 
-      finalResult = members.map((m) => {
-        const item = m.toJSON();
-        item.total_leads = item.leads ? item.leads.length : 0;
-        delete item.leads;
-        return item;
-      });
-
-      // --- C. ADMIN (lihat SENIOR LEADER) ---
-    } else if (role === "admin") {
-      // Admin boleh melihat SEMUA member
-      finalResult = await Member.findAll({
-
-        order: [["id_member", "DESC"]],
-      });
-    } else {
-      // Role lain tidak boleh akses daftar ini
+    else {
       return res.status(403).json({ message: "Role tidak diizinkan" });
     }
 
-    res.json({ members: finalResult });
+    res.json({ members: result });
   } catch (err) {
-    console.error("Error Get Members:", err);
+    console.error("Error getMembers:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// --- D. ADMIN (lihat Leader dan member bawahannya) ---
-exports.getLeadersWithMembers = async (req, res) => {
-  try {
-    const { role } = req.user;
-
-    // 🔒 Hanya admin
-    if (role !== "admin") {
-      return res.status(403).json({ message: "Akses ditolak" });
-    }
-
-    const leaders = await Member.findAll({
-      where: { jabatan: "leader" },
-      include: [
-        {
-          model: Member,
-          as: "members_bawahan",
-          where: { jabatan: "member" },
-          required: false, // leader tanpa member tetap tampil
-          attributes: ["id_member", "nama", "email", "kontak"],
-        },
-      ],
-      order: [["id_member", "DESC"]],
-    });
-
-    res.json({
-      success: true,
-      leaders,
-    });
-  } catch (err) {
-    console.error("Error getLeadersWithMembers:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: err.message,
-    });
-  }
-};
-
-exports.getLeadersMembersCabuys = async (req, res) => {
-  try {
-    const { role } = req.user;
-
-    if (role !== "admin") {
-      return res.status(403).json({ message: "Akses ditolak" });
-    }
-
-    const leaders = await Member.findAll({
-      where: { jabatan: "member" },
-      include: [
-        {
-          model: Member,
-          as: "members_bawahan",
-          where: { jabatan: "member" },
-          required: false,
-          include: [
-            {
-              model: Cabuy,
-              as: "cabuys",
-              attributes: ["id_cabuy", "nama", "email", "kontak"],
-            },
-          ],
-        },
-      ],
-      order: [["id_member", "DESC"]],
-    });
-
-    res.json({
-      success: true,
-      leaders,
-    });
-  } catch (err) {
-    console.error("Error getLeadersMembersCabuys:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: err.message,
-    });
-  }
-};
-
-
 // ------------------------------------------------------------------
-// 3. CREATE MEMBER (HIERARKI OTOMATIS)
+// 3. CREATE MEMBER
+//    → HANYA ADMIN & LEADER
 // ------------------------------------------------------------------
 exports.createMember = async (req, res) => {
   try {
     const { nama, email, password, kontak, jabatan } = req.body;
-    const creator = req.user; // Dari Token
+    const creator = req.user; // dari JWT
 
-    if (!creator || !creator.role) {
-      return res.status(401).json({ message: "Unauthorized" });
+    // =================================================
+    // VALIDASI ROLE
+    // =================================================
+    if (!["admin", "senior_leader", "leader"].includes(creator.role)) {
+      return res.status(403).json({ message: "Tidak punya akses" });
     }
 
-    // --- Validasi Role Creator ---
-    if (creator.role === "admin" && jabatan !== "senior_leader")
-      return res
-        .status(403)
-        .json({ message: "Admin hanya bisa buat Senior Leader" });
-    if (creator.role === "senior_leader" && jabatan !== "leader")
-      return res
-        .status(403)
-        .json({ message: "Senior hanya bisa buat Leader" });
-    if (creator.role === "leader" && jabatan !== "member")
-      return res
-        .status(403)
-        .json({ message: "Leader hanya bisa buat Member" });
+    // =================================================
+    // VALIDASI JABATAN YANG BOLEH DIBUAT
+    // =================================================
+    if (creator.role === "leader" && jabatan !== "member") {
+      return res.status(403).json({
+        message: "Leader hanya boleh menambah MEMBER",
+      });
+    }
 
+    if (creator.role === "senior_leader" && jabatan !== "leader") {
+      return res.status(403).json({
+        message: "Senior Leader hanya boleh menambah LEADER",
+      });
+    }
+
+    const adminAllowed = ["senior_leader", "leader", "member"];
+    if (creator.role === "admin" && !adminAllowed.includes(jabatan)) {
+      return res.status(400).json({ message: "Jabatan tidak valid" });
+    }
+
+    // =================================================
+    // HASH PASSWORD
+    // =================================================
     const hashed = await bcrypt.hash(password, 10);
 
-    // ⚠️ pakai kolom 'nama' sesuai DB
     const data = {
       nama,
       email,
@@ -234,40 +149,87 @@ exports.createMember = async (req, res) => {
       id_leader: null,
     };
 
-    // --- Logic Pengisian ID Parent ---
+    // =================================================
+    // LOGIC RELASI OTOMATIS
+    // =================================================
+
+    // ---------- ADMIN ----------
     if (creator.role === "admin") {
       data.id_admin = creator.id;
-    } else if (creator.role === "senior_leader") {
+
+      // admin buat leader → bisa set senior
+      if (jabatan === "leader" && req.body.id_senior) {
+        data.id_senior = req.body.id_senior;
+      }
+
+      // admin buat member → set leader
+      if (jabatan === "member" && req.body.id_leader) {
+        data.id_leader = req.body.id_leader;
+
+        const leaderData = await Member.findByPk(req.body.id_leader);
+        if (leaderData?.id_senior) {
+          data.id_senior = leaderData.id_senior;
+        }
+      }
+    }
+
+    // ---------- SENIOR LEADER ----------
+    if (creator.role === "senior_leader") {
+      // 🔥 otomatis leader ini di bawah senior ini
+      data.jabatan = "leader";
       data.id_senior = creator.id;
-    } else if (creator.role === "leader") {
+    }
+
+    // ---------- LEADER ----------
+    if (creator.role === "leader") {
+      data.jabatan = "member";
       data.id_leader = creator.id;
 
       const leaderData = await Member.findByPk(creator.id);
-      if (leaderData && leaderData.id_senior) {
+      if (leaderData?.id_senior) {
         data.id_senior = leaderData.id_senior;
       }
     }
 
+    // =================================================
+    // CREATE
+    // =================================================
     const newMember = await Member.create(data);
-    res.status(201).json({ message: "Berhasil dibuat", data: newMember });
+
+    res.status(201).json({
+      message: "User berhasil dibuat",
+      data: newMember,
+    });
   } catch (err) {
     console.error("Create Error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
+
+
 // ------------------------------------------------------------------
 // 4. UPDATE MEMBER
+//    → HANYA ADMIN & LEADER
 // ------------------------------------------------------------------
 exports.updateMember = async (req, res) => {
   try {
     const { id } = req.params;
     const { nama, email, password, kontak } = req.body;
+    const { role } = req.user;
+
+    if (!["admin", "leader"].includes(role)) {
+      return res.status(403).json({
+        message: "Hanya admin dan leader yang boleh mengubah data member",
+      });
+    }
 
     const member = await Member.findByPk(id);
     if (!member) return res.status(404).json({ message: "Member tidak ditemukan" });
 
-    // Sesuaikan dengan field di tabel
     if (nama) member.nama = nama;
     if (email) member.email = email;
     if (kontak) member.kontak = kontak;
@@ -283,17 +245,164 @@ exports.updateMember = async (req, res) => {
 
 // ------------------------------------------------------------------
 // 5. DELETE MEMBER
+//    → HANYA ADMIN & LEADER
 // ------------------------------------------------------------------
 exports.deleteMember = async (req, res) => {
   try {
     const { id } = req.params;
+    const { role } = req.user;
+
+    if (!["admin", "leader"].includes(role)) {
+      return res.status(403).json({
+        message: "Hanya admin dan leader yang boleh menghapus member",
+      });
+    }
+
     const member = await Member.findByPk(id);
     if (!member) return res.status(404).json({ message: "Member tidak ditemukan" });
 
     await member.destroy();
-    res.json({ message: "Berhasil dihapus" });
+    res.json({ message: "Member berhasil dihapus" });
   } catch (err) {
     console.error("Delete Error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+exports.getLeadersBySenior = async (req, res) => {
+  try {
+    const { id, role } = req.user;
+
+    // 🔒 hanya admin & senior leader yang boleh akses
+    if (!["admin", "senior_leader"].includes(role)) {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    // =================================================
+    // FILTER KONDISI
+    // =================================================
+    let whereClause = { jabatan: "leader" };
+
+    // Kalau SENIOR → hanya leader yg dia buat
+    if (role === "senior_leader") {
+      whereClause.id_senior = id;
+    }
+
+    // Kalau ADMIN → lihat semua leader (tanpa filter id_senior)
+
+    const leaders = await Member.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Member,
+          as: "members_bawahan",
+          attributes: ["id_member"], // cukup id saja
+        },
+      ],
+      order: [["id_member", "DESC"]],
+    });
+
+    const result = leaders.map((l) => {
+      const data = l.toJSON();
+      return {
+        ...data,
+        total_members: data.members_bawahan
+          ? data.members_bawahan.length
+          : 0,
+      };
+    });
+
+    return res.status(200).json({ data: result });
+  } catch (err) {
+    console.error("Error getLeadersBySenior:", err);
+    return res.status(500).json({
+      message: "Gagal mengambil data leader",
+      error: err.message,
+    });
+  }
+};
+
+// GET /api/members/leaders-members-cabuys
+exports.getLeadersMembersCabuys = async (req, res) => {
+  try {
+    const { role, id } = req.user;
+
+    // 🔒 hanya admin
+    if (role !== "admin") {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    const leaders = await Member.findAll({
+      where: { jabatan: "leader" },
+      attributes: ["id_member", "nama", "email"],
+      include: [
+        {
+          model: Member,
+          as: "members_bawahan",
+          where: { jabatan: "member" },
+          required: false,
+          attributes: ["id_member", "nama", "email", "kontak"],
+          include: [
+            {
+              model: Cabuy,
+              as: "cabuys", // pastikan relasi ini ada di model
+              attributes: [
+                "id_cabuy",
+                "nama_cabuy",
+                "kontak",
+                "status",
+                "tanggal_masuk",
+              ],
+            },
+          ],
+        },
+      ],
+      order: [["id_member", "DESC"]],
+    });
+
+    return res.json({
+      success: true,
+      data: leaders,
+    });
+  } catch (err) {
+    console.error("Error getLeadersMembersCabuys:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
+// ------------------------------------------------------------------
+// GET SENIOR LEADER
+// ------------------------------------------------------------------
+exports.getSeniorLeaders = async (req, res) => {
+  try {
+    const { role } = req.user;
+
+    // 🔒 hanya admin (opsional: tambah senior_leader kalau mau)
+    if (role !== "admin") {
+      return res.status(403).json({
+        message: "Akses ditolak",
+      });
+    }
+
+    const seniors = await Member.findAll({
+      where: { jabatan: "senior_leader" },
+      order: [["id_member", "DESC"]],
+    });
+
+    return res.json({
+      success: true,
+      members: seniors,
+    });
+  } catch (err) {
+    console.error("Error getSeniorLeaders:", err);
+    res.status(500).json({
+      success: false,
+      message: "Gagal mengambil data senior leader",
+      error: err.message,
+    });
   }
 };

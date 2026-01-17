@@ -1,9 +1,8 @@
-// controllers/propertiController.js
 const { Properti, Member, Rumah } = require("../models");
 
-// =============================
-//  GET ALL PROPERTI
-// =============================
+/* =============================
+   GET ALL PROPERTI
+============================= */
 exports.getAllProperti = async (req, res) => {
   try {
     const data = await Properti.findAll({
@@ -11,7 +10,7 @@ exports.getAllProperti = async (req, res) => {
         {
           model: Rumah,
           as: "rumahs",
-        }
+        },
       ],
       order: [["id_properti", "DESC"]],
     });
@@ -39,10 +38,9 @@ exports.getAllProperti = async (req, res) => {
   }
 };
 
-
-// =============================
-//  GET PROPERTI BY ID
-// =============================
+/* =============================
+   GET PROPERTI BY ID
+============================= */
 exports.getPropertiById = async (req, res) => {
   try {
     const data = await Properti.findByPk(req.params.id, {
@@ -50,7 +48,7 @@ exports.getPropertiById = async (req, res) => {
         {
           model: Rumah,
           as: "rumahs",
-        }
+        },
       ],
     });
 
@@ -67,7 +65,6 @@ exports.getPropertiById = async (req, res) => {
     }
 
     return res.status(200).json({ success: true, data: json });
-
   } catch (err) {
     console.error("🔥 getPropertiById Error:", err);
     return res.status(500).json({
@@ -78,13 +75,25 @@ exports.getPropertiById = async (req, res) => {
   }
 };
 
-
-// =============================
-//  CREATE PROPERTI
-// =============================
+/* =============================
+   CREATE PROPERTI
+============================= */
 exports.createProperti = async (req, res) => {
   try {
-    let { nama_properti, deskripsi, lokasi, kontraktor, kontak_kontraktor } = req.body;
+    const {
+      nama_properti,
+      deskripsi,
+      lokasi,
+      kontraktor,
+      kontak_kontraktor,
+      id_member,
+    } = req.body;
+
+    // ✅ ambil gambar dari multer
+    let image = null;
+    if (req.file) {
+      image = req.file.buffer; // simpan ke longblob
+    }
 
     const newProperti = await Properti.create({
       nama_properti,
@@ -92,6 +101,8 @@ exports.createProperti = async (req, res) => {
       lokasi,
       kontraktor,
       kontak_kontraktor,
+      id_member: id_member || null,
+      image,
     });
 
     return res.status(201).json({
@@ -99,7 +110,6 @@ exports.createProperti = async (req, res) => {
       message: "Properti berhasil ditambahkan",
       data: newProperti,
     });
-
   } catch (err) {
     console.error("🔥 createProperti Error:", err);
     return res.status(500).json({
@@ -110,25 +120,49 @@ exports.createProperti = async (req, res) => {
   }
 };
 
-
-// =============================
-//  UPDATE PROPERTI
-// =============================
+/* =============================
+   UPDATE PROPERTI
+============================= */
 exports.updateProperti = async (req, res) => {
   try {
     const properti = await Properti.findByPk(req.params.id);
     if (!properti) {
-      return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Properti tidak ditemukan" });
     }
 
-    await properti.update(req.body);
+    const {
+      nama_properti,
+      deskripsi,
+      lokasi,
+      kontraktor,
+      kontak_kontraktor,
+      id_member,
+    } = req.body;
+
+    // data update biasa
+    const payload = {
+      nama_properti,
+      deskripsi,
+      lokasi,
+      kontraktor,
+      kontak_kontraktor,
+      id_member: id_member || null,
+    };
+
+    // ✅ kalau ada file baru, replace image
+    if (req.file) {
+      payload.image = req.file.buffer;
+    }
+
+    await properti.update(payload);
 
     return res.status(200).json({
       success: true,
       message: "Properti berhasil diperbarui",
       data: properti,
     });
-
   } catch (err) {
     console.error("🔥 updateProperti Error:", err);
     return res.status(500).json({
@@ -139,15 +173,16 @@ exports.updateProperti = async (req, res) => {
   }
 };
 
-
-// =============================
-//  DELETE PROPERTI
-// =============================
+/* =============================
+   DELETE PROPERTI
+============================= */
 exports.deleteProperti = async (req, res) => {
   try {
     const properti = await Properti.findByPk(req.params.id);
     if (!properti) {
-      return res.status(404).json({ success: false, message: "Properti tidak ditemukan" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Properti tidak ditemukan" });
     }
 
     await properti.destroy();
@@ -156,7 +191,6 @@ exports.deleteProperti = async (req, res) => {
       success: true,
       message: "Properti berhasil dihapus",
     });
-
   } catch (err) {
     console.error("🔥 deleteProperti Error:", err);
     return res.status(500).json({

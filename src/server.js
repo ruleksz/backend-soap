@@ -17,6 +17,7 @@ const crmRoutes = require("./routes/crmRoutes");
 const propertiRoutes = require("./routes/propertiRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const memberDashboardRoutes = require("./routes/memberDashboardRoutes");
+const agentRoutes = require("./routes/agentRoutes");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/crm", crmRoutes);
 app.use("/api/properti", propertiRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/member-dashboard", memberDashboardRoutes);
+app.use("/api/agent", agentRoutes);
 
 // // Connect DB
 sequelize.sync()

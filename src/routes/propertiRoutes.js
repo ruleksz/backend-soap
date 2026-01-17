@@ -1,17 +1,18 @@
-// routes/properti.js
 const express = require("express");
 const router = express.Router();
-const propertiController = require("../controllers/propertiController");
-const { auth } = require("../middlewares/authMiddleware");
-const { allowRoles } = require("../middlewares/roleMiddleware");
+const controller = require("../controllers/propertiController");
+const multer = require("multer");
 
-// Public reads
-router.get("/", propertiController.getAllProperti);
-router.get("/:id", propertiController.getPropertiById);
+const upload = multer({
+    limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB
+});
 
-// Protected (Admin + Senior Leader)
-router.post("/", auth, allowRoles("admin", "senior_leader"), propertiController.createProperti);
-router.put("/:id", auth, allowRoles("admin", "senior_leader"), propertiController.updateProperti);
-router.delete("/:id", auth, allowRoles("admin", "senior_leader"), propertiController.deleteProperti);
+router.get("/", controller.getAllProperti);
+router.get("/:id", controller.getPropertiById);
+
+router.post("/", upload.single("image"), controller.createProperti);
+router.put("/:id", upload.single("image"), controller.updateProperti);
+
+router.delete("/:id", controller.deleteProperti);
 
 module.exports = router;

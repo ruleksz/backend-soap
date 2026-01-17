@@ -41,8 +41,8 @@ const Member = sequelize.define(
         // Cek phpMyAdmin Anda. Jika nama tabelnya 'members' pakai 'members'.
         // Jika nama tabelnya 'soap_members' pakai 'soap_members'.
         // Jika tidak yakin, coba 'members' dulu karena ini default Laravel/Sequelize.
-        tableName: "members", 
-        timestamps: true 
+        tableName: "members",
+        timestamps: true
     }
 );
 

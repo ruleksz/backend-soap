@@ -13,6 +13,10 @@ const Rumah = sequelize.define(
             type: DataTypes.STRING,
             allowNull: false,
         },
+        deskripsi: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
         lb: {
             type: DataTypes.FLOAT,
             allowNull: false,
@@ -30,7 +34,7 @@ const Rumah = sequelize.define(
             allowNull: false,
         },
         harga: {
-            type: DataTypes.DECIMAL(15,2),
+            type: DataTypes.DECIMAL(15, 2),
             allowNull: false,
         },
 
@@ -60,11 +64,13 @@ const Rumah = sequelize.define(
             onUpdate: "CASCADE",
             onDelete: "SET NULL",
         },
+
     },
     {
         tableName: "rumah",
         timestamps: false,
     }
+
 );
 
 module.exports = Rumah;

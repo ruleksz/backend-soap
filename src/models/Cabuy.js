@@ -34,7 +34,7 @@ const Cabuy = sequelize.define(
             allowNull: true,
             defaultValue: DataTypes.NOW, // Otomatis isi tanggal saat input
         },
-        id_member: {
+        id_rumah: {
             type: DataTypes.INTEGER,
             allowNull: true,
             // References ini opsional di level model jika sudah ada di migration/index.js
@@ -43,8 +43,8 @@ const Cabuy = sequelize.define(
     },
     {
         // 🔥 PERBAIKAN UTAMA: Sesuaikan dengan nama tabel di database asli Anda
-        tableName: "cabuy", 
-        timestamps: false, 
+        tableName: "cabuy",
+        timestamps: false,
     }
 );
 

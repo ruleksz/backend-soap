@@ -1,21 +1,34 @@
-// routes/cabuy.js
 const express = require("express");
 const router = express.Router();
+const { auth } = require("../middlewares/authMiddleware");
+
 const cabuyController = require("../controllers/cabuyController");
 
-// GET semua cabuy
-router.get("/", cabuyController.getCabuy);
+const {
+    createCabuy,
+    getCabuyByAgent,
+    getCabuyForSenior,
+    getAllCabuy,
+    getCabuyById,
+    updateCabuy,
+    deleteCabuy,
+} = cabuyController;
 
-// GET cabuy by id
-router.get("/:id", cabuyController.getCabuyById);
+// ================= ROUTES =================
 
-// POST buat cabuy baru
-router.post("/", cabuyController.createCabuy);
+// CREATE
+router.post("/", createCabuy);
 
-// PUT update cabuy
-router.put("/:id", cabuyController.updateCabuy);
+// READ
+router.get("/", auth, getAllCabuy);
+router.get("/my-leads", auth, getCabuyByAgent);
+router.get("/senior", auth, getCabuyForSenior);
+router.get("/:id", auth, getCabuyById);
 
-// DELETE hapus cabuy
-router.delete("/:id", cabuyController.deleteCabuy);
+// UPDATE
+router.put("/:id", auth, updateCabuy);
+
+// DELETE
+router.delete("/:id", auth, deleteCabuy);
 
 module.exports = router;
