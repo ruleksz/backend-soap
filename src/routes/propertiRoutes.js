@@ -12,7 +12,6 @@ router.get("/:id", controller.getPropertiById);
 
 router.post("/", upload.single("image"), controller.createProperti);
 router.put("/:id", upload.single("image"), controller.updateProperti);
-
 router.delete("/:id", controller.deleteProperti);
 
 module.exports = router;

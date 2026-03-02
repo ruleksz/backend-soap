@@ -1,9 +1,44 @@
-const { Properti, Member, Rumah } = require("../models");
+const { Properti, Rumah } = require("../models");
+
+/* =========================================
+   HELPER: Detect MIME Type dari Buffer
+========================================= */
+const detectMimeType = (buffer) => {
+  if (!buffer) return null;
+
+  const signature = buffer.toString("hex", 0, 4);
+
+  switch (signature) {
+    case "89504e47":
+      return "image/png";
+    case "ffd8ffe0":
+    case "ffd8ffe1":
+    case "ffd8ffe2":
+    case "ffd8ffe3":
+    case "ffd8ffe8":
+      return "image/jpeg";
+    case "47494638":
+      return "image/gif";
+    default:
+      return "application/octet-stream";
+  }
+};
+
+/* =========================================
+   CONVERT IMAGE BUFFER TO BASE64 DATA URL
+========================================= */
+const convertImage = (json) => {
+  if (json.image && Buffer.isBuffer(json.image)) {
+    const mime = detectMimeType(json.image);
+    json.image = `data:${mime};base64,${json.image.toString("base64")}`;
+  }
+  return json;
+};
 
 /* =============================
    GET ALL PROPERTI
 ============================= */
-exports.getAllProperti = async (req, res) => {
+const getAllProperti = async (req, res) => {
   try {
     const data = await Properti.findAll({
       include: [
@@ -17,10 +52,7 @@ exports.getAllProperti = async (req, res) => {
 
     const result = data.map((item) => {
       const json = item.toJSON();
-      if (json.image && Buffer.isBuffer(json.image)) {
-        json.image = `data:image/jpeg;base64,${json.image.toString("base64")}`;
-      }
-      return json;
+      return convertImage(json);
     });
 
     return res.status(200).json({
@@ -41,7 +73,7 @@ exports.getAllProperti = async (req, res) => {
 /* =============================
    GET PROPERTI BY ID
 ============================= */
-exports.getPropertiById = async (req, res) => {
+const getPropertiById = async (req, res) => {
   try {
     const data = await Properti.findByPk(req.params.id, {
       include: [
@@ -59,12 +91,12 @@ exports.getPropertiById = async (req, res) => {
       });
     }
 
-    const json = data.toJSON();
-    if (json.image && Buffer.isBuffer(json.image)) {
-      json.image = `data:image/jpeg;base64,${json.image.toString("base64")}`;
-    }
+    const json = convertImage(data.toJSON());
 
-    return res.status(200).json({ success: true, data: json });
+    return res.status(200).json({
+      success: true,
+      data: json,
+    });
   } catch (err) {
     console.error("🔥 getPropertiById Error:", err);
     return res.status(500).json({
@@ -78,7 +110,7 @@ exports.getPropertiById = async (req, res) => {
 /* =============================
    CREATE PROPERTI
 ============================= */
-exports.createProperti = async (req, res) => {
+const createProperti = async (req, res) => {
   try {
     const {
       nama_properti,
@@ -89,10 +121,10 @@ exports.createProperti = async (req, res) => {
       id_member,
     } = req.body;
 
-    // ✅ ambil gambar dari multer
     let image = null;
+
     if (req.file) {
-      image = req.file.buffer; // simpan ke longblob
+      image = req.file.buffer;
     }
 
     const newProperti = await Properti.create({
@@ -105,10 +137,12 @@ exports.createProperti = async (req, res) => {
       image,
     });
 
+    const json = convertImage(newProperti.toJSON());
+
     return res.status(201).json({
       success: true,
       message: "Properti berhasil ditambahkan",
-      data: newProperti,
+      data: json,
     });
   } catch (err) {
     console.error("🔥 createProperti Error:", err);
@@ -123,13 +157,15 @@ exports.createProperti = async (req, res) => {
 /* =============================
    UPDATE PROPERTI
 ============================= */
-exports.updateProperti = async (req, res) => {
+const updateProperti = async (req, res) => {
   try {
     const properti = await Properti.findByPk(req.params.id);
+
     if (!properti) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Properti tidak ditemukan" });
+      return res.status(404).json({
+        success: false,
+        message: "Properti tidak ditemukan",
+      });
     }
 
     const {
@@ -141,7 +177,6 @@ exports.updateProperti = async (req, res) => {
       id_member,
     } = req.body;
 
-    // data update biasa
     const payload = {
       nama_properti,
       deskripsi,
@@ -151,17 +186,18 @@ exports.updateProperti = async (req, res) => {
       id_member: id_member || null,
     };
 
-    // ✅ kalau ada file baru, replace image
     if (req.file) {
       payload.image = req.file.buffer;
     }
 
     await properti.update(payload);
 
+    const json = convertImage(properti.toJSON());
+
     return res.status(200).json({
       success: true,
       message: "Properti berhasil diperbarui",
-      data: properti,
+      data: json,
     });
   } catch (err) {
     console.error("🔥 updateProperti Error:", err);
@@ -176,13 +212,15 @@ exports.updateProperti = async (req, res) => {
 /* =============================
    DELETE PROPERTI
 ============================= */
-exports.deleteProperti = async (req, res) => {
+const deleteProperti = async (req, res) => {
   try {
     const properti = await Properti.findByPk(req.params.id);
+
     if (!properti) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Properti tidak ditemukan" });
+      return res.status(404).json({
+        success: false,
+        message: "Properti tidak ditemukan",
+      });
     }
 
     await properti.destroy();
@@ -199,4 +237,12 @@ exports.deleteProperti = async (req, res) => {
       error: err.message,
     });
   }
+};
+
+module.exports = {
+  getAllProperti,
+  getPropertiById,
+  createProperti,
+  updateProperti,
+  deleteProperti,
 };

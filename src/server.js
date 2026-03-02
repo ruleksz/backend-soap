@@ -39,11 +39,14 @@ app.use("/api/properti", propertiRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/member-dashboard", memberDashboardRoutes);
 app.use("/api/agent", agentRoutes);
+app.get("/", (req, res) => {
+    res.send("Welcome to the Real Estate API!");
+});
 
 // // Connect DB
-sequelize.sync()
-    .then(() => console.log("✅ Database connected & synced..."))
-    .catch((err) => console.error("DB Error:", err));
+// sequelize.sync()
+//     .then(() => console.log("✅ Database connected & synced..."))
+//     .catch((err) => console.error("DB Error:", err));
 
 // 🔄 Sinkronisasi model dengan database
 // sequelize
@@ -56,6 +59,15 @@ sequelize.sync()
 //     });
 
 // Start server
+
+// RUNNING IN DOCKER
+sequelize.sync({ alter: true })
+    .then(() => {
+        console.log("Database synchronized successfully in Docker environment!");
+    })
+    .catch(err => console.log("Error syncing database in Docker environment:", err));
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log("SECRET:", process.env.JWT_SECRET);
