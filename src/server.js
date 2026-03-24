@@ -44,9 +44,9 @@ app.get("/", (req, res) => {
 });
 
 // // Connect DB
-// sequelize.sync()
-//     .then(() => console.log("✅ Database connected & synced..."))
-//     .catch((err) => console.error("DB Error:", err));
+sequelize.sync()
+    .then(() => console.log("✅ Database connected & synced..."))
+    .catch((err) => console.error("DB Error:", err));
 
 // 🔄 Sinkronisasi model dengan database
 // sequelize
@@ -61,15 +61,14 @@ app.get("/", (req, res) => {
 // Start server
 
 // RUNNING IN DOCKER
-sequelize.sync({ alter: true })
-    .then(() => {
-        console.log("Database synchronized successfully in Docker environment!");
-    })
-    .catch(err => console.log("Error syncing database in Docker environment:", err));
+// sequelize.sync({ alter: true })
+//     .then(() => {
+//         console.log("Database synchronized successfully in Docker environment!");
+//     })
+//     .catch(err => console.log("Error syncing database in Docker environment:", err));
 
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log("SECRET:", process.env.JWT_SECRET);
     console.log(`✅ Server running at http://localhost:${PORT}`);
 });
