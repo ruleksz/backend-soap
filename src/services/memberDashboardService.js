@@ -1,34 +1,25 @@
+const Member = require("../models/Member");
 const Properti = require("../models/Properti");
 const Survey = require("../models/Survey");
 const Rumah = require("../models/Rumah");
-const Crm = require("../models/Crm");
 
-exports.getStats = async (user, query) => {
-    const memberId = user?.id || query.id_member;
+exports.getStats = async (user) => {
+    const memberId = user?.id;
 
-    const [crmCount, propertiCount, surveyCount, rumahCount] =
+    const [leaderCount, projectCount, surveyCount, propertiCount] =
         await Promise.all([
-            Crm.count({
-                where: memberId ? { id_member: memberId } : {},
-            }),
-
-            Properti.count({
-                where: memberId ? { id_member: memberId } : {},
-            }),
-
+            Member.count({ where: { jabatan: "leader" } }),
+            Rumah.count(),
             Survey.count({
                 where: memberId ? { id_member: memberId } : {},
             }),
-
-            Rumah.count({
-                where: memberId ? { id_member: memberId } : {},
-            }),
+            Properti.count(),
         ]);
 
     return {
-        crmCount,
-        propCount: propertiCount,
+        leaderCount,
+        projectCount,
         surveyCount,
-        rumahCount,
+        propertiCount,
     };
 };
